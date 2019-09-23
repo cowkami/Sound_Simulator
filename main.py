@@ -1,9 +1,13 @@
-from time import sleep
-import numpy as np
+# from time import sleep
+from backend import backend as bd
+from backend import set_backend
 from matrix_visualizer import MatrixVisualizer
 
-NX = 300
-NY = 400
+set_backend('torch.cuda')
+
+NX = 500
+NY = 300
+NZ = 100
 
 dx = 0.01
 dt = 20.0e-6
@@ -12,35 +16,37 @@ N_STEP = 10000
 
 freq = 1.0e+03
 
-rho = 1.3
+rho = 12
 kappa = 142.0e3
 
-Vx = np.zeros((NX+1, NY), "float64")
-Vy = np.zeros((NX, NY+1), "float64")
-P = np.zeros((NX, NY), "float64")
+Vx = bd.zeros((NX+1, NY,   NZ))
+Vy = bd.zeros((NX,   NY+1, NZ))
+Vz = bd.zeros((NX,   NY,   NZ+1))
+P = bd.zeros((NX,   NY,   NZ))
 
-v = MatrixVisualizer(NY*3, NX*3)
+vis = MatrixVisualizer(1920, int(NY*1920/(NY+NZ)))
 
 max_ = 0
 for n in range(N_STEP+1):
-    Vx[1:-1, :] += - (dt / (rho * dx)) * (P[1:, :] - P[:-1, :])
-    Vy[:, 1:-1] += - (dt / (rho * dx)) * (P[:, 1:] - P[:, :-1])
-    P[:NX, :NY] += - (kappa * dt / dx) * ((Vx[1:] - Vx[:-1, :])
-                   + (Vy[:, 1:] - Vy[:, :-1]))
-
-#    if n < (1.0/freq)/dt:
-#    if True:
-    if n % 1000 > 0 and n % 1000 < 50:
-        sig = ((1.0 - np.cos(2.0 * np.pi * freq * n * dt)) / 2.0) \
-              * np.sin(2.0 * np.pi * freq * n * dt)
+    Vx[1:-1, :, :] -= (dt / (rho * dx)) * (P[1:, :, :] - P[:-1, :, :])
+    Vy[:, 1:-1, :] -= (dt / (rho * dx)) * (P[:, 1:, :] - P[:, :-1, :])
+    Vz[:, :, 1:-1] -= (dt / (rho * dx)) * (P[:, :, 1:] - P[:, :, :-1])
+    P[:NX, :NY, :NZ] -= (kappa * dt / dx) * (
+        (Vx[1:, :, :] - Vx[:-1, :, :]) +
+        (Vy[:, 1:, :] - Vy[:, :-1, :]) +
+        (Vz[:, :, 1:] - Vz[:, :, :-1])
+    )
+    if n % 500 > 0 and n % 500 < 50:
+        amp = 10
+        theta = bd.array(2.0 * bd.pi * freq * n * dt)
+        sig = amp * ((1.0 - bd.cos(theta)) / 2.0) * bd.sin(theta)
     else:
         sig = 0.0
 
-    if max_ < P.max():
-        max_ = P.max()
-        v.value_range_max = max_
+    P[int(NX/4), int(NY/3), int(NZ/2)] = sig
 
-    P[int(NX/4), int(NY/3)] = sig
+    # obstacle
+    P[int(NX/2):int(NX*2/3), int(NY/3):int(NY*2/3), :] = 0
 
-    v.update(P)
-    sleep(.005)
+    vis.update(bd.numpy(bd.cat((P[:, :, int(NZ/2)], P[:, int(NY/3), :]), axis=1)))
+#    sleep(.005)
