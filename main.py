@@ -16,7 +16,7 @@ N_STEP = 10000
 
 freq = 1.0e+03
 
-rho = 12
+rho = 13
 kappa = 142.0e3
 
 Vx = bd.zeros((NX+1, NY,   NZ))
@@ -43,10 +43,10 @@ for n in range(N_STEP+1):
     else:
         sig = 0.0
 
-    P[int(NX/4), int(NY/3), int(NZ/2)] = sig
+    P[int(NX/4), int(NY*4/11):int(NY*6/11), int(NZ/3):int(NZ*2/3)] = sig
 
     # obstacle
-    P[int(NX/2):int(NX*2/3), int(NY/3):int(NY*2/3), :] = 0
+    P[int(NX/2):int(NX*2/3), int(NY/3):int(NY*2/3), :] *= 0.2
 
     vis.update(bd.numpy(bd.cat((P[:, :, int(NZ/2)], P[:, int(NY/3), :]), axis=1)))
 #    sleep(.005)
