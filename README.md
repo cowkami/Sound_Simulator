@@ -1,4 +1,4 @@
-# Acoustic FDTD 2-D Simulator
+# Acoustic FDTD 3-D Simulator
 This simulates how sound travels in the fluid media (i.e. air or liquid).
 
 ## requirements
@@ -11,3 +11,7 @@ This simulates how sound travels in the fluid media (i.e. air or liquid).
 If you get problems about tkinter, you need tk-dev and reinstall python.
 Click here for details.
 https://stackoverflow.com/questions/26357567/cannot-import-tkinter-after-installing-python-3-with-pyenv#26358646
+
+## references
+PML by Chu Ma - http://math.mit.edu/classes/18.086/2014/reports/ChuMa.pdf
+Adaptive PML - http://www.acoust.iis.u-tokyo.ac.jp/publication/2005/asj_a/asj0509_sakamoto.pdf
