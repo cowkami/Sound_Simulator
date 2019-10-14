@@ -8,21 +8,23 @@ NX = 500
 NY = 300
 NZ = 100
 
-dx = 0.01
-dt = 20.0e-6
+#dx = 0.01
+dx = 1
+#dt = 20.0e-6
+dt = 0.01
 
 N_STEP = 10000
 
 freq = 1.0e+03
 
-C = 34000
+C = 340
 rho = 1.2
 kappa = C * rho
 
 
 # PML layer
 S_max = 50  # max sigma means maximum attenuation coefficients.
-W_PML = 20  # width of perfetly matched layer.
+W_PML = 30  # width of perfetly matched layer.
 Sx = bd.zeros((NX+1, NY,   NZ))
 Sy = bd.zeros((NX,   NY+1, NZ))
 Sz = bd.zeros((NX,   NY,   NZ+1))
@@ -45,28 +47,43 @@ Vy = bd.zeros((NX,   NY+1, NZ))
 Vz = bd.zeros((NX,   NY,   NZ+1))
 P = bd.zeros((NX,   NY,   NZ))
 
+
+def diff(tensor, axis=0):
+    i = [0, 0, 0]
+    i[axis] = 1
+    Nx, Ny, Nz = tensor.shape
+    return (
+        tensor[i[0]:, i[1]:, i[2]:] - tensor[:Nx-i[0], :Ny-i[1], :Nz-i[2]])
+
+
 vis = MatrixVisualizer(4*NX, 4*(NY+NZ))
 
 for n in range(N_STEP+1):
-    Vx[1:-1, :, :] -= (dt / (rho * dx)) * (P[1:, :, :] - P[:-1, :, :]) \
+    Vx[1:-1, :, :] -= (dt / (rho * dx)) * (diff(P, axis=0)) \
         + (C * dt) * Sx[1:-1, :, :] * Vx[1:-1, :, :]
-    Vy[:, 1:-1, :] -= (dt / (rho * dx)) * (P[:, 1:, :] - P[:, :-1, :]) \
+    Vy[:, 1:-1, :] -= (dt / (rho * dx)) * (diff(P, axis=1)) \
         + (C * dt) * Sy[:, 1:-1, :] * Vy[:, 1:-1, :]
-    Vz[:, :, 1:-1] -= (dt / (rho * dx)) * (P[:, :, 1:] - P[:, :, :-1]) \
+    Vz[:, :, 1:-1] -= (dt / (rho * dx)) * (diff(P, axis=2)) \
         + (C * dt) * Sz[:, :, 1:-1] * Vz[:, :, 1:-1]
 
-    P -= (kappa * dt / dx) \
-        * (   (Vx[1:, :, :] - Vx[:-1, :, :])
-            + (Vy[:, 1:, :] - Vy[:, :-1, :])
-            + (Vz[:, :, 1:] - Vz[:, :, :-1])
-            + Sx[1:, :, :] * (dt / dx) * (Vx[1:, :, :] - Vx[:-1, :, :])
-            + Sy[:, 1:, :] * (dt / dx) * (Vy[:, 1:, :] - Vy[:, :-1, :])
-            + Sz[:, :, 1:] * (dt / dx) * (Vz[:, :, 1:] - Vz[:, :, :-1])) \
-        + (C * dt) * (Sx[1:, :, :] + Sy[:, 1:, :] + Sz[:, :, 1:]) * P
+    P -= (kappa * dt / dx) * (
+              diff(Vx, axis=0)
+            + diff(Vy, axis=1)
+            + diff(Vz, axis=2)
+            + (dt / dx) * (
+                  Sx[1:, :, :] * diff(Vx, axis=0)
+                + Sy[:, 1:, :] * diff(Vy, axis=1)
+                + Sz[:, :, 1:] * diff(Vz, axis=2)
+            )) \
+        + (C * dt) * (
+              Sx[1:, :, :]
+            + Sy[:, 1:, :]
+            + Sz[:, :, 1:]
+        ) * P
 
     # input signal
     if n % 500 > 0 and n % 500 < 50:
-        amp = 10
+        amp = 5
         theta = bd.array(2.0 * bd.pi * freq * n * dt)
         sig = amp * bd.sin(theta)
         P[int(NX/4), int(NY*4/11):int(NY*6/11), int(NZ/3):int(NZ*2/3)] = sig
