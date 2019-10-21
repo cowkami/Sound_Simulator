@@ -8,7 +8,7 @@ GLSL_PATH = path.join(path.dirname(path.abspath(__file__)), 'glsl')
 class MatrixVisualizer(object):
     """docstring for MatrixVisualizer."""
     def __init__(self,
-        width=600, height=600, value_range_min=0, value_range_max=1
+        width=600, height=600, value_range_min=-1, value_range_max=1, colormap='IDL.frag'
     ):
         self.value_range = (value_range_min, value_range_max)
         self._canvas = app.Canvas(
@@ -24,7 +24,7 @@ class MatrixVisualizer(object):
             'r'
         ).read()
         fragment_shader = open(
-            path.join(GLSL_PATH, 'matrix_visualizer_fragment.glsl'),
+            path.join(GLSL_PATH, colormap),
             'r'
         ).read()
         self._render_program = gloo.Program(vertex_shader, fragment_shader)
